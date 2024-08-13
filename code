@@ -1,0 +1,140 @@
+#include <Servo.h>
+
+// Define pins for motors and servos
+const int motor1PWM = 9;   // PWM pin for Motor1
+const int motor1Dir = 8;   // Direction pin for Motor1
+const int motor2PWM = 10;  // PWM pin for Motor2
+const int motor2Dir = 11;  // Direction pin for Motor2
+const int currentSensorPin = A0; // Analog pin for current sensor
+
+// Define pins for servo motors
+const int servo1Pin = 3;
+const int servo2Pin = 5;
+const int servo3Pin = 6;
+const int servo4Pin = 7;
+
+// Create Servo objects
+Servo servo1;
+Servo servo2;
+Servo servo3;
+Servo servo4;
+
+// Define IR sensor pin
+const int irSensorPin = 2; // Digital pin for IR sensor
+
+// Define thresholds and timing
+const int currentThreshold = 100; // Adjust this as needed for your current sensor
+const int motorSpeed = 255; // Speed of Motor2 (PWM value)
+const int delayTime = 5000; // Time to wait before checking current (ms)
+const int servoRotationAngle = 180; // Angle to rotate the servos
+
+void setup() {
+  // Initialize motor pins
+  pinMode(motor1PWM, OUTPUT);
+  pinMode(motor1Dir, OUTPUT);
+  pinMode(motor2PWM, OUTPUT);
+  pinMode(motor2Dir, OUTPUT);
+  
+  // Initialize servo motors
+  servo1.attach(servo1Pin);
+  servo2.attach(servo2Pin);
+  servo3.attach(servo3Pin);
+  servo4.attach(servo4Pin);
+
+  // Initialize IR sensor pin
+  pinMode(irSensorPin, INPUT);
+
+  // Start with servos at 0 degrees
+  servo1.write(0);
+  servo2.write(0);
+  servo3.write(0);
+  servo4.write(0);
+
+  Serial.begin(9600); // For debugging purposes
+}
+
+void loop() {
+  // Read IR sensor value
+  bool objectDetected = digitalRead(irSensorPin);
+  
+  if (objectDetected) {
+    // Object detected, start process
+
+    // Read current sensor value
+    int currentValue = analogRead(currentSensorPin);
+    Serial.print("Current Sensor Reading: ");
+    Serial.println(currentValue);
+
+    if (currentValue < currentThreshold) {
+      // Ammeter reading is varying
+      // Rotate Motor2 clockwise
+      digitalWrite(motor2Dir, HIGH);
+      analogWrite(motor2PWM, motorSpeed);
+      
+      delay(delayTime); // Wait for a while
+
+      // Stop Motor2
+      analogWrite(motor2PWM, 0);
+      delay(2000); // Wait for 2 seconds
+      
+      // Check if current reading has become constant
+      int stableReading = 0;
+      bool currentStable = false;
+
+      while (!currentStable) {
+        stableReading = analogRead(currentSensorPin);
+        if (stableReading >= currentThreshold) {
+          currentStable = true;
+        }
+        delay(500); // Wait a bit before rechecking
+      }
+
+      // Rotate Motor2 anticlockwise
+      digitalWrite(motor2Dir, LOW);
+      analogWrite(motor2PWM, motorSpeed);
+
+      delay(delayTime); // Wait for a while
+
+      // Stop Motor2
+      analogWrite(motor2PWM, 0);
+      delay(2000); // Wait for 2 seconds
+
+      // Rotate all servos to 180 degrees
+      servo1.write(servoRotationAngle);
+      servo2.write(servoRotationAngle);
+      servo3.write(servoRotationAngle);
+      servo4.write(servoRotationAngle);
+      delay(2000); // Wait for servos to reach position
+
+      // Return servos to 0 degrees
+      servo1.write(0);
+      servo2.write(0);
+      servo3.write(0);
+      servo4.write(0);
+      delay(2000); // Wait for servos to reach position
+    } else {
+      // If current reading is constant from the beginning
+      // Rotate all servos to 180 degrees
+      servo1.write(servoRotationAngle);
+      servo2.write(servoRotationAngle);
+      servo3.write(servoRotationAngle);
+      servo4.write(servoRotationAngle);
+      delay(2000); // Wait for servos to reach position
+
+      // Return servos to 0 degrees
+      servo1.write(0);
+      servo2.write(0);
+      servo3.write(0);
+      servo4.write(0);
+      delay(2000); // Wait for servos to reach position
+    }
+  } else {
+    // Object not detected, do nothing or reset servo positions if needed
+    // Optional: reset servos to 0 degrees if they were not reset
+    servo1.write(0);
+    servo2.write(0);
+    servo3.write(0);
+    servo4.write(0);
+    delay(2000); // Wait for servos to reach position
+  }
+}
